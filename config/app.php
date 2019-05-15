@@ -228,4 +228,6 @@ return [
 
     ],
 
+    'file_originals_dir' => public_path('upload/originals')
+
 ];
