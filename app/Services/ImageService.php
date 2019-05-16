@@ -219,9 +219,7 @@ class ImageService
             File::makeDirectory(public_path('upload/resize'), 0755, true);
         }
 
-        $resizeImageName = $this->getNameWithoutExtension($imageItem->name) .
-                                '_[resize_' . $width . 'x' . $height . '].' .
-                                $this->getFileExtension($imageItem->name);
+        $resizeImageName = $this->getResizeImageName($imageItem->name, $width, $height);
 
         $image->resize($width, $height)->save(public_path('upload/resize').'/'.$resizeImageName);
 
@@ -256,9 +254,7 @@ class ImageService
     {
         $imageItem = Image::find($imageId);
 
-        $resizeImageName = $this->getNameWithoutExtension($imageItem->name) .
-            '_[resize_' . $width . 'x' . $height . '].' .
-            $this->getFileExtension($imageItem->name);
+        $resizeImageName = $this->getResizeImageName($imageItem->name, $width, $height);
 
         $successDelete = Storage::disk('api')->delete('resize/'.$resizeImageName);
 
@@ -289,9 +285,7 @@ class ImageService
         $result = [];
         foreach ($resizes as $resize) {
 
-            $resizeImageName = $this->getNameWithoutExtension($imageItem->name) .
-                '_[resize_' . $resize['width'] . 'x' . $resize['height'] . '].' .
-                $this->getFileExtension($imageItem->name);
+            $resizeImageName = $this->getResizeImageName($imageItem->name, $resize['width'], $resize['height']);
 
             $result[] = [
                 'url' => url(Storage::disk('api')->url('resize/'.$resizeImageName)),
@@ -301,5 +295,12 @@ class ImageService
         }
 
         return $result;
+    }
+
+    public function getResizeImageName($imageName, $width, $height)
+    {
+        return $this->getNameWithoutExtension($imageName) .
+            '_[resize_' . $width . 'x' . $height . '].' .
+            $this->getFileExtension($imageName);
     }
 }
