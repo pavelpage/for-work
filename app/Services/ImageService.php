@@ -5,9 +5,12 @@ namespace App\Services;
 
 use App\Business\SavedFile;
 use App\Image;
+use App\Jobs\CreateResize;
+use File;
 use GuzzleHttp\Client;
 use Illuminate\Http\UploadedFile;
 use Storage;
+use Intervention\Image\Facades\Image as ImageLib;
 
 class ImageService
 {
@@ -28,6 +31,7 @@ class ImageService
                         'size' => $file->getSize(),
                     ]),
                 ]);
+                CreateResize::dispatch($imageItem->id);
                 $savedFiles->pushSavedFile($imageItem);
             } catch (\Exception $e) {
                 $savedFiles->pushError([$e->getCode(), $e->getMessage(), $file->getClientOriginalName()]);
@@ -62,6 +66,7 @@ class ImageService
                         'size' => $savedFile->getSize(),
                     ]),
                 ]);
+                CreateResize::dispatch($imageItem->id);
                 $savedFiles->pushSavedFile($imageItem);
             } catch (\Exception $e) {
                 $savedFiles->pushError([$e->getCode(), $e->getMessage(), $url]);
@@ -151,6 +156,7 @@ class ImageService
                         'size' => $savedFile->getSize(),
                     ]),
                 ]);
+                CreateResize::dispatch($imageItem->id);
                 $savedFiles->pushSavedFile($imageItem);
             } catch (\Exception $e) {
                 $savedFiles->pushError([$e->getCode(), $e->getMessage()]);
@@ -202,5 +208,47 @@ class ImageService
         }
 
         return $extensionsArr[$mimeType];
+    }
+
+    public function createResize($imageId, $width = 100, $height = 100)
+    {
+        $imageItem = Image::find($imageId);
+        $image = ImageLib::make(Storage::disk('api')->get('originals/'.$imageItem->name));
+
+        if (!is_dir(public_path('upload/resize'))) {
+            File::makeDirectory(public_path('upload/resize'), 0755, true);
+        }
+
+        $resizeImageName = $this->getNameWithoutExtension($imageItem->name) .
+                                '_[resize_' . $width . 'x' . $height . '].' .
+                                $this->getFileExtension($imageItem->name);
+
+        $image->resize($width, $height)->save(public_path('upload/resize').'/'.$resizeImageName);
+
+        $imageItem->addResize($width, $height);
+
+        return url('upload/resize/'.$resizeImageName);
+    }
+
+    /**
+     * @param $name
+     * @return bool|string
+     */
+    public function getNameWithoutExtension($name)
+    {
+        $posLastPoint = mb_strrpos($name, ".");
+
+        if ($posLastPoint !== false) {
+            $name = mb_substr($name, 0, $posLastPoint);
+            return $name;
+        }
+        return false;
+    }
+
+    public function getFileExtension($fileName)
+    {
+        $lastDotPos = mb_strrpos($fileName, '.');
+        if ( !$lastDotPos ) return false;
+        return mb_substr($fileName, $lastDotPos+1);
     }
 }

@@ -8,7 +8,21 @@ use Illuminate\Http\Request;
 class ApiImageController extends Controller
 {
     //
-    public function storeFile(Request $request, ImageService $imageService)
+    /**
+     * @var ImageService
+     */
+    private $imageService;
+
+    /**
+     * ApiImageController constructor.
+     * @param ImageService $imageService
+     */
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
+    public function storeFile(Request $request)
     {
         $this->validate($request, [
             'files.*' => 'image|required|max:'.config('app.max_file_size_upload'),
@@ -16,7 +30,7 @@ class ApiImageController extends Controller
 
         $files = $request->file('files');
 
-        $savedFiles = $imageService->saveFilesAndRetrieveItems($files);
+        $savedFiles = $this->imageService->saveFilesAndRetrieveItems($files);
 
         return [
             'items' => $savedFiles->getSavedFiles(),
@@ -24,13 +38,13 @@ class ApiImageController extends Controller
         ];
     }
 
-    public function saveFileFromUrl(Request $request, ImageService $imageService)
+    public function saveFileFromUrl(Request $request)
     {
         $data = $this->validate($request, [
             'urls.*' => 'required|url|string',
         ]);
 
-        $savedFiles = $imageService->uploadFromUrls($data['urls']);
+        $savedFiles = $this->imageService->uploadFromUrls($data['urls']);
 
         return [
             'items' => $savedFiles->getSavedFiles(),
@@ -38,13 +52,13 @@ class ApiImageController extends Controller
         ];
     }
 
-    public function saveFileFromBase64(Request $request, ImageService $imageService)
+    public function saveFileFromBase64(Request $request)
     {
         $data = $this->validate($request, [
             'files.*' => 'required|string',
         ]);
 
-        $savedFiles = $imageService->saveFilesFromBase64($data['files']);
+        $savedFiles = $this->imageService->saveFilesFromBase64($data['files']);
 
         return [
             'items' => $savedFiles->getSavedFiles(),
@@ -52,8 +66,14 @@ class ApiImageController extends Controller
         ];
     }
 
-    public function createResize()
+    public function createResize(Request $request)
     {
-        
+        $resizeUrl = $this->imageService->createResize(
+            $request->input('image_id'), $request->input('width', 100), $request->input('height', 100)
+        );
+
+        return [
+            'url' => $resizeUrl,
+        ];
     }
 }
