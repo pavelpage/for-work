@@ -38,9 +38,18 @@ class ApiImageController extends Controller
         ];
     }
 
-    public function saveFileFromBase64()
+    public function saveFileFromBase64(Request $request, ImageService $imageService)
     {
-        
+        $data = $this->validate($request, [
+            'files.*' => 'required|string',
+        ]);
+
+        $savedFiles = $imageService->saveFilesFromBase64($data['files']);
+
+        return [
+            'items' => $savedFiles->getSavedFiles(),
+            'errors' => $savedFiles->getErrors(),
+        ];
     }
 
     public function createResize()

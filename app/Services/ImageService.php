@@ -136,4 +136,71 @@ class ImageService
         $newName = $randomString . '.' . $extension;
         return $newName;
     }
+
+    public function saveFilesFromBase64($files)
+    {
+        $savedFiles = new SavedFiles();
+
+        foreach ($files as $file) {
+            try {
+                $savedFile = $this->saveFileFromBase64($file);
+                $imageItem = Image::create([
+                    'name' => $savedFile->getFilename(),
+                    'original_name' => $savedFile->getOriginalFileName(),
+                    'file_info' => json_encode([
+                        'size' => $savedFile->getSize(),
+                    ]),
+                ]);
+                $savedFiles->pushSavedFile($imageItem);
+            } catch (\Exception $e) {
+                $savedFiles->pushError([$e->getCode(), $e->getMessage()]);
+            }
+        }
+
+        return $savedFiles;
+    }
+
+    /**
+     * @param $base64String
+     * @return SavedFile
+     * @throws \Exception
+     */
+    private function saveFileFromBase64($base64String)
+    {
+        $data = explode(',', $base64String);
+        $content = base64_decode($data[1]);
+        $fileExtension = $this->getExtensionFromBase64String($base64String);
+        $fileName = $this->generateUniqueName($fileExtension);
+
+        Storage::disk('api')->put('originals/'.$fileName, $content);
+
+        return new SavedFile($fileName, $fileName, Storage::disk('api')->size('originals/'.$fileName));
+    }
+
+    /**
+     * @param $base64String
+     * @return string
+     * @throws \Exception
+     */
+    public function getExtensionFromBase64String($base64String)
+    {
+        $data = explode(',', $base64String);
+        $mimeType = explode(':',$data[0]);
+        $mimeType = $mimeType[1];
+
+        $mimeType = substr($mimeType, 0, strpos($mimeType, ';'));
+
+        $extensionsArr = [
+            'image/gif' => 'gif',
+            'image/jpeg' => 'jpeg',
+            'image/pjpeg' => 'jpeg',
+            'image/png' => 'png',
+        ];
+
+        if (!isset($extensionsArr[$mimeType])) {
+            throw new \Exception('Unsupported mime type of base64 image');
+        }
+
+        return $extensionsArr[$mimeType];
+    }
 }
