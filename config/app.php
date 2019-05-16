@@ -228,6 +228,7 @@ return [
 
     ],
 
-    'file_originals_dir' => public_path('upload/originals')
+    'file_originals_dir' => public_path('upload/originals'),
+    'max_file_size_upload' => round(1024*env('CUSTOM_UPLOAD_MAX_FILE_SIZE', 3)),
 
 ];

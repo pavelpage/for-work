@@ -19,4 +19,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::group(['prefix' => 'image'],function (){
     Route::post('store-files', 'ApiImageController@storeFile')->name('api.store-files');
+    Route::get('store-from-remote-source', 'ApiImageController@saveFileFromUrl')->name('api.store-from-remote-source');
 });

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -24,6 +23,7 @@ class ApiImageTest extends TestCase
         $response->assertStatus(200);
         $content = $response->getOriginalContent();
 
+        $this->assertCount(2, $content['items']);
         $this->assertCount(0, $content['errors']);
     }
 }
