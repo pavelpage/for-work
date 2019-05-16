@@ -76,4 +76,45 @@ class ApiImageController extends Controller
             'url' => $resizeUrl,
         ];
     }
+
+    public function getImageResizes(Request $request)
+    {
+        $data = $this->validate($request, [
+            'image_id' => 'required',
+        ]);
+
+        return $this->imageService->getImageResizes($data['image_id']);
+    }
+
+    public function deleteImageResize(Request $request)
+    {
+        $data = $this->validate($request, [
+            'image_id' => 'required',
+            'width' => 'required',
+            'height' => 'required',
+        ]);
+
+        $successDelete = $this->imageService->deleteImageResize(
+            $data['image_id'], $data['width'], $data['height']
+        );
+
+        return [
+            'deleted' => $successDelete,
+        ];
+    }
+
+    public function deleteAllImageResizes(Request $request)
+    {
+        $data = $this->validate($request, [
+            'image_id' => 'required',
+        ]);
+
+        $successDelete = $this->imageService->deleteAllImageResizes(
+            $data['image_id']
+        );
+
+        return [
+            'deleted' => $successDelete,
+        ];
+    }
 }

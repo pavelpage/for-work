@@ -234,7 +234,7 @@ class ImageService
      * @param $name
      * @return bool|string
      */
-    public function getNameWithoutExtension($name)
+    private function getNameWithoutExtension($name)
     {
         $posLastPoint = mb_strrpos($name, ".");
 
@@ -245,10 +245,61 @@ class ImageService
         return false;
     }
 
-    public function getFileExtension($fileName)
+    private function getFileExtension($fileName)
     {
         $lastDotPos = mb_strrpos($fileName, '.');
         if ( !$lastDotPos ) return false;
         return mb_substr($fileName, $lastDotPos+1);
+    }
+
+    public function deleteImageResize($imageId, $width, $height)
+    {
+        $imageItem = Image::find($imageId);
+
+        $resizeImageName = $this->getNameWithoutExtension($imageItem->name) .
+            '_[resize_' . $width . 'x' . $height . '].' .
+            $this->getFileExtension($imageItem->name);
+
+        $successDelete = Storage::disk('api')->delete('resize/'.$resizeImageName);
+
+        if( $successDelete ) {
+            $imageItem->deleteResize($width, $height);
+        }
+
+        return $successDelete;
+    }
+
+    public function deleteAllImageResizes($imageId)
+    {
+        $imageItem = Image::find($imageId);
+        $resizes = $imageItem->resizes;
+
+        foreach ($resizes as $resize) {
+            $this->deleteImageResize($imageId, $resize['width'], $resize['height']);
+        }
+
+        return true;
+    }
+
+    public function getImageResizes($imageId)
+    {
+        $imageItem = Image::find($imageId);
+        $resizes = $imageItem->resizes;
+
+        $result = [];
+        foreach ($resizes as $resize) {
+
+            $resizeImageName = $this->getNameWithoutExtension($imageItem->name) .
+                '_[resize_' . $resize['width'] . 'x' . $resize['height'] . '].' .
+                $this->getFileExtension($imageItem->name);
+
+            $result[] = [
+                'url' => url(Storage::disk('api')->url('resize/'.$resizeImageName)),
+                'width' => $resize['width'],
+                'height' => $resize['height'],
+            ];
+        }
+
+        return $result;
     }
 }

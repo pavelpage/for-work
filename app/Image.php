@@ -9,21 +9,28 @@ class Image extends Model
     //
     protected $guarded = [];
 
+    protected $casts = [
+        'resizes' => 'array',
+    ];
+
     public function addResize($width, $height)
     {
         $resizes = $this->resizes;
-        if (empty($resizes)) {
-            $resizes = [
-                [$width, $height]
-            ];
-        }
-        else {
-            $resizes = json_decode($resizes);
-            $resizes[] = [$width, $height];
-        }
+        $resizes[] = ['width' => $width, 'height' => $height];
 
-        $this->update([
-            'resizes' => json_encode($resizes),
-        ]);
+        $this->resizes = $resizes;
+        $this->save();
+    }
+
+    public function deleteResize($width, $height)
+    {
+        $resizes = collect($this->resizes);
+
+        $resizes = $resizes->filter(function($item, $key) use ($width, $height){
+            return !($item['width'] == $width && $item['height'] == $height);
+        });
+
+        $this->resizes = $resizes->values()->toArray();
+        $this->save();
     }
 }
