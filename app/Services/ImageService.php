@@ -15,6 +15,17 @@ use Intervention\Image\Facades\Image as ImageLib;
 class ImageService
 {
 
+    private $originalFolderName;
+    private $resizeFolderName;
+    private $diskFolderName;
+
+    public function __construct()
+    {
+        $this->originalFolderName = 'originals';
+        $this->resizeFolderName = 'resize';
+        $this->diskFolderName = config('filesystems.disks.api.folder_name');
+    }
+
     /**
      * @param $filesArr \Illuminate\Http\UploadedFile[]
      */
@@ -37,7 +48,7 @@ class ImageService
 
     private function saveFileAndGetStoredName(UploadedFile $file)
     {
-        Storage::disk('api')->put('originals', $file);
+        Storage::disk('api')->put($this->originalFolderName, $file);
 
         return $file->hashName();
     }
@@ -95,7 +106,7 @@ class ImageService
         }
 
         $filename = $this->generateUniqueName($fileExtension);
-        Storage::disk('api')->put('originals/'.$filename, $fileStream);
+        Storage::disk('api')->put($this->originalFolderName.'/'.$filename, $fileStream);
 
         return new SavedFile($filename, $originalFileName, $response->getSize());
     }
@@ -159,9 +170,9 @@ class ImageService
         $fileExtension = $this->getExtensionFromBase64String($base64String);
         $fileName = $this->generateUniqueName($fileExtension);
 
-        Storage::disk('api')->put('originals/'.$fileName, $content);
+        Storage::disk('api')->put($this->originalFolderName.'/'.$fileName, $content);
 
-        return new SavedFile($fileName, $fileName, Storage::disk('api')->size('originals/'.$fileName));
+        return new SavedFile($fileName, $fileName, Storage::disk('api')->size($this->originalFolderName.'/'.$fileName));
     }
 
     /**
@@ -194,19 +205,20 @@ class ImageService
     public function createResize($imageId, $width = 100, $height = 100)
     {
         $imageItem = Image::find($imageId);
-        $image = ImageLib::make(Storage::disk('api')->get('originals/'.$imageItem->name));
+        $image = ImageLib::make(Storage::disk('api')->get($this->originalFolderName.'/'.$imageItem->name));
 
-        if (!is_dir(public_path('upload/resize'))) {
-            File::makeDirectory(public_path('upload/resize'), 0755, true);
+        $publicDir = public_path($this->diskFolderName.'/'.$this->resizeFolderName);
+        if (!is_dir($publicDir)) {
+            File::makeDirectory($publicDir, 0755, true);
         }
 
         $resizeImageName = $this->getResizeImageName($imageItem->name, $width, $height);
 
-        $image->resize($width, $height)->save(public_path('upload/resize').'/'.$resizeImageName);
+        $image->resize($width, $height)->save($publicDir.'/'.$resizeImageName);
 
         $imageItem->addResize($width, $height);
 
-        return url('upload/resize/'.$resizeImageName);
+        return Storage::disk('api')->url($this->resizeFolderName.'/'.$resizeImageName);
     }
 
     /**
@@ -247,7 +259,7 @@ class ImageService
 
         $resizeImageName = $this->getResizeImageName($imageItem->name, $width, $height);
 
-        $successDelete = Storage::disk('api')->delete('resize/'.$resizeImageName);
+        $successDelete = Storage::disk('api')->delete($this->resizeFolderName.'/'.$resizeImageName);
 
         if( $successDelete ) {
             $imageItem->deleteResize($width, $height);
@@ -287,7 +299,7 @@ class ImageService
             $resizeImageName = $this->getResizeImageName($imageItem->name, $resize['width'], $resize['height']);
 
             $result[] = [
-                'url' => url(Storage::disk('api')->url('resize/'.$resizeImageName)),
+                'url' => url(Storage::disk('api')->url($this->resizeFolderName.'/'.$resizeImageName)),
                 'width' => $resize['width'],
                 'height' => $resize['height'],
             ];

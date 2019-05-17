@@ -57,6 +57,7 @@ return [
 
         'api' => [
             'driver' => 'local',
+            'folder_name' => 'upload',
             'root' => public_path('upload'),
             'url' => env('APP_URL').'/upload',
             'visibility' => 'public',
