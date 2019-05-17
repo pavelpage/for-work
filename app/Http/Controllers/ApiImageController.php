@@ -24,13 +24,11 @@ class ApiImageController extends Controller
 
     public function storeFile(Request $request)
     {
-        $this->validate($request, [
+        $data = $this->validate($request, [
             'files.*' => 'image|required|max:'.config('app.max_file_size_upload'),
         ]);
 
-        $files = $request->file('files');
-
-        $savedFiles = $this->imageService->saveFilesAndRetrieveItems($files);
+        $savedFiles = $this->imageService->saveFilesAndRetrieveItems($data['files']);
 
         return [
             'items' => $savedFiles->getSavedFiles(),

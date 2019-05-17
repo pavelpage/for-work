@@ -13,6 +13,17 @@ class Image extends Model
         'resizes' => 'array',
     ];
 
+    public static function addItem($name, $originalName, $size)
+    {
+        return static::create([
+            'name' => $name,
+            'original_name' => $originalName,
+            'file_info' => json_encode([
+                'size' => $size,
+            ]),
+        ]);
+    }
+
     public function addResize($width, $height)
     {
         $resizes = $this->resizes;
@@ -26,7 +37,7 @@ class Image extends Model
     {
         $resizes = collect($this->resizes);
 
-        $resizes = $resizes->filter(function($item, $key) use ($width, $height){
+        $resizes = $resizes->filter(function($item) use ($width, $height){
             return !($item['width'] == $width && $item['height'] == $height);
         });
 

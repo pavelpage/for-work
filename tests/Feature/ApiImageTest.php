@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\ImageService;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\UploadedFile;
+use Storage;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 class ApiImageTest extends TestCase
 {
     use RefreshDatabase;
+    use WithoutMiddleware;
 
     /** @var ImageService */
     private $imageService;
@@ -35,6 +38,19 @@ class ApiImageTest extends TestCase
 
         $this->assertCount(2, $content['items']);
         $this->assertCount(0, $content['errors']);
+    }
+
+    public function test_it_should_not_store_files_with_extra_size()
+    {
+        config(['app.max_file_size_upload' => 1*1024]);
+
+        $response = $this->postJson(route('api.store-files'), [
+            'files' => [
+                UploadedFile::fake()->image('avatar.jpg')->size(2*1024),
+            ]
+        ]);
+
+        $response->assertStatus(422);
     }
 
     public function test_it_can_store_base64_strings_as_files()
@@ -64,6 +80,66 @@ class ApiImageTest extends TestCase
 
         $this->assertCount(0, $content['items']);
         $this->assertCount(1, $content['errors']);
+    }
+
+    public function test_it_can_create_resize_for_specific_image()
+    {
+        $savedFiles = $this->saveFiles();
+        $imageId = $savedFiles[0]['id'];
+        $imageName = $savedFiles[0]['name'];
+
+        $width = 120;
+        $height = 120;
+
+        $this->postJson(route('api.create-resize'), [
+            'image_id' => $imageId,
+            'width' => $width,
+            'height' => $height,
+        ]);
+
+        $resizeName = $this->imageService->getResizeImageName($imageName, $width, $height);
+
+        Storage::disk('api')->assertExists('resize/'.$resizeName);
+    }
+
+    public function test_it_can_delete_all_resizes()
+    {
+        $savedFiles = $this->saveFiles();
+        $imageId = $savedFiles[0]['id'];
+        $imageName = $savedFiles[0]['name'];
+
+        $this->postJson(route('api.create-resize'), [
+            'image_id' => $imageId,
+            'width' => 120,
+            'height' => 120,
+        ]);
+
+        $this->deleteJson(route('api.delete-all-resizes'), [
+            'image_id' => $imageId,
+        ]);
+
+        $resizeName1 = $this->imageService->getResizeImageName($imageName, 100, 100);
+        $resizeName2 = $this->imageService->getResizeImageName($imageName, 120, 120);
+
+        Storage::disk('api')->assertMissing('resize/'.$resizeName1);
+        Storage::disk('api')->assertMissing('resize/'.$resizeName2);
+    }
+
+    public function test_it_delete_default_resize()
+    {
+        $savedFiles = $this->saveFiles();
+        $imageId = $savedFiles[0]['id'];
+        $imageName = $savedFiles[0]['name'];
+
+        $this->deleteJson(route('api.delete-resize'), [
+            'image_id' => $imageId,
+            'width' => 100,
+            'height' => 100,
+        ]);
+
+        $resizeName = $this->imageService->getResizeImageName($imageName, 100, 100);
+
+        Storage::disk('api')->assertMissing('resize/'.$resizeName);
     }
 
     public function test_it_can_get_list_of_resizes()

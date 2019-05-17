@@ -24,13 +24,7 @@ class ImageService
         foreach ($filesArr as $file) {
             try {
                 $fileName = $this->saveFileAndGetStoredName($file);
-                $imageItem = Image::create([
-                    'name' => $fileName,
-                    'original_name' => $file->getClientOriginalName(),
-                    'file_info' => json_encode([
-                        'size' => $file->getSize(),
-                    ]),
-                ]);
+                $imageItem = Image::addItem($fileName, $file->getClientOriginalName(), $file->getSize());
                 CreateResize::dispatch($imageItem->id);
                 $savedFiles->pushSavedFile($imageItem);
             } catch (\Exception $e) {
@@ -59,13 +53,7 @@ class ImageService
         foreach ($urlsArr as $url) {
             try {
                 $savedFile = $this->uploadFromUrl($url);
-                $imageItem = Image::create([
-                    'name' => $savedFile->getFilename(),
-                    'original_name' => $savedFile->getOriginalFileName(),
-                    'file_info' => json_encode([
-                        'size' => $savedFile->getSize(),
-                    ]),
-                ]);
+                $imageItem = Image::addItem($savedFile->getFilename(), $savedFile->getOriginalFileName(), $savedFile->getSize());
                 CreateResize::dispatch($imageItem->id);
                 $savedFiles->pushSavedFile($imageItem);
             } catch (\Exception $e) {
@@ -109,7 +97,6 @@ class ImageService
         $filename = $this->generateUniqueName($fileExtension);
         Storage::disk('api')->put('originals/'.$filename, $fileStream);
 
-
         return new SavedFile($filename, $originalFileName, $response->getSize());
     }
 
@@ -149,13 +136,7 @@ class ImageService
         foreach ($files as $file) {
             try {
                 $savedFile = $this->saveFileFromBase64($file);
-                $imageItem = Image::create([
-                    'name' => $savedFile->getFilename(),
-                    'original_name' => $savedFile->getOriginalFileName(),
-                    'file_info' => json_encode([
-                        'size' => $savedFile->getSize(),
-                    ]),
-                ]);
+                $imageItem = Image::addItem($savedFile->getFilename(), $savedFile->getOriginalFileName(), $savedFile->getSize());
                 CreateResize::dispatch($imageItem->id);
                 $savedFiles->pushSavedFile($imageItem);
             } catch (\Exception $e) {
@@ -243,6 +224,10 @@ class ImageService
         return false;
     }
 
+    /**
+     * @param $fileName
+     * @return bool|string
+     */
     private function getFileExtension($fileName)
     {
         $lastDotPos = mb_strrpos($fileName, '.');
@@ -250,6 +235,12 @@ class ImageService
         return mb_substr($fileName, $lastDotPos+1);
     }
 
+    /**
+     * @param $imageId
+     * @param $width
+     * @param $height
+     * @return bool
+     */
     public function deleteImageResize($imageId, $width, $height)
     {
         $imageItem = Image::find($imageId);
@@ -265,6 +256,10 @@ class ImageService
         return $successDelete;
     }
 
+    /**
+     * @param $imageId
+     * @return bool
+     */
     public function deleteAllImageResizes($imageId)
     {
         $imageItem = Image::find($imageId);
@@ -277,6 +272,10 @@ class ImageService
         return true;
     }
 
+    /**
+     * @param $imageId
+     * @return array
+     */
     public function getImageResizes($imageId)
     {
         $imageItem = Image::find($imageId);
@@ -297,6 +296,12 @@ class ImageService
         return $result;
     }
 
+    /**
+     * @param $imageName
+     * @param $width
+     * @param $height
+     * @return string
+     */
     public function getResizeImageName($imageName, $width, $height)
     {
         return $this->getNameWithoutExtension($imageName) .

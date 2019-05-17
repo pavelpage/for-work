@@ -21,7 +21,7 @@ Route::group(['prefix' => 'image', 'middleware' => 'auth:api'],function (){
     Route::post('store-files', 'ApiImageController@storeFile')->name('api.store-files');
     Route::post('store-from-remote-source', 'ApiImageController@saveFileFromUrl')->name('api.store-from-remote-source');
     Route::post('store-from-base64', 'ApiImageController@saveFileFromBase64')->name('api.store-from-base64');
-    Route::post('create-resize', 'ApiImageController@createResize')->name('api.create');
+    Route::post('create-resize', 'ApiImageController@createResize')->name('api.create-resize');
     Route::get('resizes', 'ApiImageController@getImageResizes')->name('api.get-image-resizes');
     Route::delete('resize', 'ApiImageController@deleteImageResize')->name('api.delete-resize');
     Route::delete('all-resizes', 'ApiImageController@deleteAllImageResizes')->name('api.delete-all-resizes');
