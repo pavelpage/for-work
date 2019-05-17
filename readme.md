@@ -5,7 +5,7 @@
 1. Clone this project into specific directory on your server, and go to this directory.
 2. Run ``composer install`` command from your terminal.
 3. Configure your server for using api, according to the [laravel docs](https://laravel.com/docs/5.5/installation#web-server-configuration "laravel docs").
-4. Copy `.env.example` file to `.env` file and `.env.testing` files.
+4. Copy `.env.example` file to `.env` file and `.env.testing` files. Set `APP_URL` param in these files.
 5. Create databases:
     - For common usage, and set `DB_DATABASE` param on `.env` file
     - For testing, and set `DB_DATABASE` param on `.env.testing` file
